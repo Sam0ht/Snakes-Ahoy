@@ -1,0 +1,16 @@
+This is my take on the classic Nibbles/Snakes game for Android mobile phones, where you direct the snake North, South, East or West to eat the apples and squeeze between the walls.
+
+If you just want to play the game, grab it here
+
+https://market.android.com/details?id=com.westmacott.tom.snakes
+
+
+For discussion, see
+
+http://snakesahoy.blogspot.com
+
+
+This code is free to use and modify.  If you have any questions, contact me on my blog.
+You should be able to pull this code into Eclipse as an Android project, assuming you have the Android SDK installed.  I hope it works equally well on Mac and Linux as PC.
+
+Notes - The game loop is based on James Daniello's excellent Simple Java Android Game Loop ( http://blorb.tumblr.com/post/236799414/simple-java-android-game-loop ). It is NOT based on the Snakes sample included in the Android SDK - I found this to suffer flickering graphics and unresponsive controls, whereas using James's game loop and my own touch listener I've been able to make something much more stable and responsive. 

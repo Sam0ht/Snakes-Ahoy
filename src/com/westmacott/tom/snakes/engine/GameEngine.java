@@ -174,6 +174,7 @@ public class GameEngine {
 				state = GameState.RUNNING;
 				userMessage = UserMessage.of("", "");
 				levelInProgress = true;
+				collectGarbageAndWait(200);
 			}
 			break;
 		case OVER:
@@ -189,7 +190,6 @@ public class GameEngine {
 		boolean levelCompleted = scoreKeeper.incrementScore();
 		
 		if (levelCompleted) {
-			collectGarbageAndWait(200);
 			recordCompleted(levels[currentLevel].id);
 			currentLevel++;
 			if (currentLevel < levels.length) {

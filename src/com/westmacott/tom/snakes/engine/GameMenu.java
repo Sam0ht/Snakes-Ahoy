@@ -21,11 +21,13 @@ import com.westmacott.tom.snakes.messagebus.MessageListener;
 public class GameMenu implements BusModule {
 
 	private static final String LISTENER_ID_MENU_LIFT = "MenuLift";
+	private static final String LISTENER_ID_HSCROLL = "MenuHScroll";
 
 	public static final String MSG_START_LEVEL = "startLevel";
 	
 	private int leftMargin = 50;
 	private int topMargin = 50;
+	private int yOffset = 0;
 	
 	private MessageBus gameBus;
 	private List<Option> options = new ArrayList<Option>();
@@ -33,6 +35,7 @@ public class GameMenu implements BusModule {
 	private final Properties properties;
 
 	private final boolean running;
+	private int menuHeightPx;
 
 	public static enum CompletionState {
 		COMPLETED(Colour.GREEN),
@@ -106,28 +109,30 @@ public class GameMenu implements BusModule {
 
 	private void createMenuEntries(Level[] levels, int textSize) {
 		List<Option> newOptions = new ArrayList<Option>();
-		int y = textSize * 3;
+		int y = topMargin;
+		final int yStep = (int)(textSize * 2);
 		if (this.running) {
-			newOptions.add(new ResumeOption(y += (int)(textSize * 2), AVAILABLE));
+			newOptions.add(new ResumeOption(y += yStep, AVAILABLE));
 		}
 		boolean levelAvailable = true;
 		for (Level level : levels) {
 			final boolean levelCompleted = this.properties.hasLevelBeenCompleted(level.id);
 			final CompletionState completion = levelCompleted ? COMPLETED : levelAvailable ? AVAILABLE : FUTURE;
-			newOptions.add(new LevelOption(level, y += (int)(textSize * 2), completion));
+			newOptions.add(new LevelOption(level, y += yStep, completion));
 			levelAvailable = levelCompleted;
 		}
+		this.menuHeightPx = y;
 		this.options = newOptions;
 	}
 
 	public void draw(Canvas c) {
-		c.drawText("S N A K E S", leftMargin, topMargin, Colour.GREEN.paint);
+		c.drawText("S N A K E S", leftMargin, topMargin + yOffset, Colour.GREEN.paint);
 		for (Option level : this.options) {
-			c.drawText(level.name(), leftMargin, level.yPosition, level.completion.colour.paint);
+			c.drawText(level.name(), leftMargin, level.yPosition + yOffset, level.completion.colour.paint);
 		}
 	}
 	
-	private void positionSelected(String position) {
+	protected void positionSelected(String position) {
 		Location location = new Location(position);
 		Option selected = findSelectedLevel(location);
 		if (selected.completion.equals(FUTURE) && !GameEngine.DEBUG) {
@@ -142,7 +147,7 @@ public class GameMenu implements BusModule {
 		int minDistance = 10000;
 		Option selected = null;
 		for (Option option : this.options) {
-			int distance = Math.abs(option.yPosition - location.y);
+			int distance = Math.abs((option.yPosition + yOffset) - location.y);
 			if (distance < minDistance) {
 				minDistance = distance;
 				selected = option;
@@ -164,12 +169,35 @@ public class GameMenu implements BusModule {
 				return LISTENER_ID_MENU_LIFT;
 			}
 		});
+		gameBus.subscribe(GameEngine.TOUCHSCREEN_NAME, NESWTouchListener.MSG_HSCROLL, new MessageListener() {
+			
+			@Override
+			public void recieve(String...data) {
+				drag(data[0]);
+			}
+			
+			@Override
+			public String id() {
+				return LISTENER_ID_HSCROLL;
+			}
+		});
+	}
+
+	protected void drag(String moved) {
+		int yDiff = Integer.valueOf(moved);
+		yOffset += yDiff;
+		if (yOffset > 0) {
+			yOffset = 0;
+		} else if (yOffset < -menuHeightPx) {
+			yOffset = -menuHeightPx;
+		}
 	}
 
 	@Override
 	public void join(MessageBus bus) {
 		this.gameBus = bus;
 		this.gameBus.unSubscribe(LISTENER_ID_MENU_LIFT);
+		this.gameBus.unSubscribe(LISTENER_ID_HSCROLL);
 		joinBus();
 	}
 	

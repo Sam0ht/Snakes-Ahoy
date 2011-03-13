@@ -5,6 +5,7 @@ import android.graphics.Canvas;
 import android.os.Handler;
 import android.view.SurfaceHolder;
 
+import com.westmacott.tom.snakes.engine.GameEngine.GameState;
 import com.westmacott.tom.snakes.messagebus.BusModule;
 import com.westmacott.tom.snakes.messagebus.MessageBus;
 import com.westmacott.tom.snakes.messagebus.MessageListener;
@@ -118,7 +119,7 @@ public class PaintThread extends Thread implements BusModule {
 			GameEngine.delayTime = delay;
 			try {
 				//actual sleep code
-				if (sleepTime > 0){
+				if (sleepTime > 0 && !GameState.MENU.equals(GameEngine.state())){
 					Thread.sleep(sleepTime);
 				} 
 				

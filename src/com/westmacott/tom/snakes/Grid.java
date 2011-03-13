@@ -128,15 +128,11 @@ public class Grid implements BusModule {
 		square.vacated();
 	}
 	
-	private Set<Square> readOccupied() {
-		synchronized (occupiedSquares) {
-			return occupiedSquares;
-		}
-	}
-	
 	public void draw(Canvas c) {
-		for(Square occupiedSquare : readOccupied()) {
-			render(c, occupiedSquare);
+		synchronized (occupiedSquares) {
+			for(Square occupiedSquare : occupiedSquares) {
+				render(c, occupiedSquare);
+			}
 		}
 		for(int i = 0; i < score; i++) {
 			final int left = i * squareSizeX;

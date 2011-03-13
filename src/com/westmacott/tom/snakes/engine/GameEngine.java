@@ -81,7 +81,12 @@ public class GameEngine {
 	private final Level[] levels = Level.all;
 	private final Properties properties;
 	public static final String MSG_SHOW_TOAST = "ShowToast";
+	public static final boolean DEBUG = false;
 	private int textSize = 10;
+	
+	public static double spareTime;
+	public static long delayTime;
+	private Rect announceRect = new Rect(0,0,0,0);
 	
 	public GameEngine(Properties properties) {
 		this.properties = properties;
@@ -167,6 +172,7 @@ public class GameEngine {
 		case READY:
 			if (Direction.NORTH.equals(Direction.valueOf(data[0]))) {
 				state = GameState.RUNNING;
+				userMessage = UserMessage.of("", "");
 				levelInProgress = true;
 			}
 			break;
@@ -183,6 +189,7 @@ public class GameEngine {
 		boolean levelCompleted = scoreKeeper.incrementScore();
 		
 		if (levelCompleted) {
+			collectGarbageAndWait(200);
 			recordCompleted(levels[currentLevel].id);
 			currentLevel++;
 			if (currentLevel < levels.length) {
@@ -195,6 +202,14 @@ public class GameEngine {
 				currentLevel = 0;
 				levelInProgress = false;
 			}
+		}
+	}
+	
+	private static void collectGarbageAndWait(int millis) {
+		System.gc();
+		try {
+			Thread.sleep(200);
+		} catch (InterruptedException e) {
 		}
 	}
 
@@ -230,7 +245,6 @@ public class GameEngine {
 			case READY:
 				break;
 			case RUNNING:
-				userMessage = UserMessage.of("", "");
 				boolean died = snake.update(grid);
 				if (died) {
 					state = GameState.OVER;
@@ -274,12 +288,15 @@ public class GameEngine {
 	public void drawGame(Canvas c) {
 		grid.showScore(scoreKeeper.getScore());
 		grid.draw(c);
+		if (DEBUG) {
+			c.drawText(spareTime + "ms / " + delayTime + "ms", 10, 30, Colour.RED.paint);
+		}
 	}
 
 	public void announcement(Canvas c) {
 		int midHeight = screenHeight / 2;
-		final Rect rect = new Rect(textSize, midHeight - (int)(textSize * 2), screenWidth - textSize, midHeight + (3 * textSize));
-		c.drawRect(rect, backgroundPaint);
+		announceRect.set(textSize, midHeight - (int)(textSize * 2), screenWidth - textSize, midHeight + (3 * textSize));
+		c.drawRect(announceRect, backgroundPaint);
 		c.drawText(userMessage.announcement, screenWidth / 2, midHeight, messagePaint);
 		c.drawText(userMessage.instruction, screenWidth / 2, midHeight + (textSize * 2), messagePaint);
 	}
@@ -316,3 +333,4 @@ public class GameEngine {
 		return currentLevel;
 	}
 }
+ 

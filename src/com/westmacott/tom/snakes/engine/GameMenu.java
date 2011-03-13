@@ -130,7 +130,7 @@ public class GameMenu implements BusModule {
 	private void positionSelected(String position) {
 		Location location = new Location(position);
 		Option selected = findSelectedLevel(location);
-		if (selected.completion.equals(FUTURE)) {
+		if (selected.completion.equals(FUTURE) && !GameEngine.DEBUG) {
 			this.gameBus.send(GameEngine.TOASTER_NAME, GameEngine.MSG_SHOW_TOAST, "Available once previous level cleared");
 		} else {
 			gameBus.unSubscribe(LISTENER_ID_MENU_LIFT);

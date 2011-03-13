@@ -75,7 +75,7 @@ public class Snake implements BusModule {
 		}
 
 		Location head = this.direction.moveFrom(segments.get(0));
-		head = grid.normalise(head);
+		head = Grid.normalise(head);
 		segments.add(0, head);
 		return grid.occupy(head.x, head.y, drawable);
 

@@ -69,6 +69,9 @@ public class Grid implements BusModule {
 	
 	private MessageBus bus;
 	private int score;
+	
+	private final Rect wallRect = new Rect(0,0,0,0);
+	private final Rect infoBarRect = new Rect(0,0,0,0);
 
 	
 	public Grid(int xPixels, int yPixels) {
@@ -127,7 +130,7 @@ public class Grid implements BusModule {
 	
 	private Set<Square> readOccupied() {
 		synchronized (occupiedSquares) {
-			return new HashSet<Square>(occupiedSquares);
+			return occupiedSquares;
 		}
 	}
 	
@@ -137,12 +140,17 @@ public class Grid implements BusModule {
 		}
 		for(int i = 0; i < score; i++) {
 			final int left = i * squareSizeX;
-			final Rect rect = new Rect(left, 0, left + squareSizeX - 1, squareSizeY);
+			final Rect rect = move(infoBarRect, left, 0, left + squareSizeX - 1, squareSizeY);
 			final Paint paint = Apple.COLOUR.paint;
 			c.drawRect(rect, paint);
 		}
-		final Rect rest = new Rect(GameEngine.APPLES_PER_LEVEL * squareSizeX, 0, (getMaxColNum() + 1) * squareSizeX, squareSizeY);
+		final Rect rest = move(infoBarRect, GameEngine.APPLES_PER_LEVEL * squareSizeX, 0, (getMaxColNum() + 1) * squareSizeX, squareSizeY);
 		c.drawRect(rest, Colour.LIGHT_GREY.paint);
+	}
+	
+	private static Rect move(Rect r, int left, int top, int right, int bottom) {
+		r.set(left, top, right, bottom);
+		return r;
 	}
 	
 	public void showScore(int score) {
@@ -152,16 +160,16 @@ public class Grid implements BusModule {
 	private void render(Canvas c, Square square) {
 		final int left = square.x * squareSizeX;
 		final int top = (square.y + 1) * squareSizeY;
-		final Rect rect = new Rect(left, top, left + squareSizeX, top + squareSizeY);
+		final Rect rect = move(wallRect, left, top, left + squareSizeX, top + squareSizeY);
 		final Paint paint = square.occupiedBy.getColour().paint;
 		c.drawRect(rect, paint);
 	}
 
-	public int getMaxColNum() {
+	public static int getMaxColNum() {
 		return COLS - 1;
 	}
 	
-	public int getMaxRowNum() {
+	public static int getMaxRowNum() {
 		return ROWS - 1;
 	}
 
@@ -173,7 +181,7 @@ public class Grid implements BusModule {
 		return newLocation;
 	}
 
-	public Location getRandomLocation() {
+	public static Location getRandomLocation() {
 		int maxX = getMaxColNum();
 		int maxY = getMaxRowNum();
 		int x = GameEngine.getRandomBetween(1, maxX - 1);
@@ -181,7 +189,7 @@ public class Grid implements BusModule {
 		return new Location(x, y);
 	}
 
-	public Location normalise(Location location) {
+	public static Location normalise(Location location) {
 		int x = location.x;
 		int y = location.y;
 		if (x < 0) {

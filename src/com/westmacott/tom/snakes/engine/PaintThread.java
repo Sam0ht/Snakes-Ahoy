@@ -103,18 +103,25 @@ public class PaintThread extends Thread implements BusModule {
 				}
 			}
 
-
+			// Can request explicit GC here for debug purposes, to show number of objects created per loop:
+			if (GameEngine.DEBUG) {
+				System.gc();
+			}
+			
 			//SLEEP
 			//Sleep time. Time required to sleep to keep game consistent
 			//This starts with the specified delay time (in milliseconds) then subtracts from that the
 			//actual time it took to update and render the game. This allows our game to render smoothly.
-			this.sleepTime = delay-((System.nanoTime()-beforeTime)/1000000L);
+			this.sleepTime = delay - ((System.nanoTime()-beforeTime)/1000000L);
 
+			GameEngine.spareTime = this.sleepTime; 
+			GameEngine.delayTime = delay;
 			try {
 				//actual sleep code
-				if(sleepTime>0){
+				if (sleepTime > 0){
 					Thread.sleep(sleepTime);
-				}
+				} 
+				
 			} catch (InterruptedException ex) {
 				// nothing sensible to do here, probably won't happen and would only result in animation jumping forwards if it does.
 			}

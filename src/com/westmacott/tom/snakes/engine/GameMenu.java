@@ -36,6 +36,8 @@ public class GameMenu implements BusModule {
 
 	private final boolean running;
 	private int menuHeightPx;
+	private final int screenHeight;
+	private int scrollLimit;
 
 	public static enum CompletionState {
 		COMPLETED(Colour.GREEN),
@@ -98,8 +100,9 @@ public class GameMenu implements BusModule {
 	public GameMenu(Level[] levels, GameBus gameBus, Properties properties, int textSize, boolean running) {
 		this.properties = properties;
 		this.running = running;
-		leftMargin = (int)(textSize * 2);
-		topMargin = (int)(textSize * 2);
+		leftMargin = textSize * 2;
+		topMargin = textSize * 2;
+		screenHeight = textSize * 25;
 		
 		createMenuEntries(levels, textSize);
 		
@@ -122,6 +125,7 @@ public class GameMenu implements BusModule {
 			levelAvailable = levelCompleted;
 		}
 		this.menuHeightPx = y;
+		this.scrollLimit = Math.max(0, (menuHeightPx + (5 * topMargin)) - screenHeight);
 		this.options = newOptions;
 	}
 
@@ -188,8 +192,8 @@ public class GameMenu implements BusModule {
 		yOffset += yDiff;
 		if (yOffset > 0) {
 			yOffset = 0;
-		} else if (yOffset < -menuHeightPx) {
-			yOffset = -menuHeightPx;
+		} else if (yOffset < -scrollLimit) {
+			yOffset = -scrollLimit;
 		}
 	}
 

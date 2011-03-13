@@ -129,11 +129,14 @@ public class Grid implements BusModule {
 	}
 	
 	public void draw(Canvas c) {
+		final Square[] squareArray = new Square[occupiedSquares.size()];
 		synchronized (occupiedSquares) {
-			for(Square occupiedSquare : occupiedSquares) {
-				render(c, occupiedSquare);
-			}
+			occupiedSquares.toArray(squareArray);
 		}
+		for(Square occupiedSquare : squareArray) {
+			render(c, occupiedSquare);
+		}
+
 		for(int i = 0; i < score; i++) {
 			final int left = i * squareSizeX;
 			final Rect rect = move(infoBarRect, left, 0, left + squareSizeX - 1, squareSizeY);

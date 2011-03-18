@@ -22,7 +22,7 @@ import com.westmacott.tom.snakes.messagebus.MessageListener;
 
 public class GameEngine {
 	
-	public static final boolean DEBUG = true;
+	public static final boolean DEBUG = false;
 	
 	public static final String SNAKE_NAME = "Snake";
 	public static final String APPLE_NAME = "Apple";

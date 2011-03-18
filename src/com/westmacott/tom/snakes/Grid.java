@@ -157,10 +157,15 @@ public class Grid implements BusModule {
 	}
 
 	private void render(Canvas c, Square square) {
+		final Drawable occupant = square.occupiedBy;
+		if (occupant == null) {
+			return;
+		}
+		final Paint paint = occupant.getColour().paint;
+		
 		final int left = square.x * squareSizeX;
 		final int top = (square.y + 1) * squareSizeY;
 		final Rect rect = move(wallRect, left, top, left + squareSizeX, top + squareSizeY);
-		final Paint paint = square.occupiedBy.getColour().paint;
 		c.drawRect(rect, paint);
 	}
 

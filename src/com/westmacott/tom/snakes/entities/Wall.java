@@ -6,7 +6,7 @@ import com.westmacott.tom.snakes.Grid;
 
 
 public class Wall {
-	public static final Colour COLOUR = Colour.YELLOW;
+	public static final Colour COLOUR = Colour.LIGHT_BROWN;
 	
 	private final String wallName;
 	private final String layout;

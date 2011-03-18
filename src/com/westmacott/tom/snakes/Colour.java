@@ -5,6 +5,7 @@ import android.graphics.Paint;
 public enum Colour {
 	RED (paintOfColour(255, 0, 0)),
 	YELLOW (paintOfColour(255, 255, 0)),
+	LIGHT_BROWN (paintOfColour(150, 30, 30)),
 	GREEN (paintOfColour(0, 200, 0)),
 	BLUE (paintOfColour(0, 0, 255)),
 	SKY_BLUE (paintOfColour(75, 175, 255)),

@@ -11,12 +11,13 @@ import com.westmacott.tom.snakes.messagebus.MessageBus;
 
 public class NESWTouchListener implements View.OnTouchListener, BusModule {
 	
-	private static final int DRAG_THRESHOLD = 2;
-	public static final String MSG_SWIPE = "swipe";
 	public static final String MSG_LIFT = "lift";
 	public static final String MSG_HSCROLL = "horizontalScroll";
+	public static final String MSG_SWIPE = "swipe";
+
+	private static final int SELECT_THRESHOLD = 10;
+	private static final int DRAG_THRESHOLD = 5;
 	
-	private final int threshold = 5;
 	private Location start;
 	private MessageBus bus;
 	private int lastY = 0;
@@ -47,7 +48,7 @@ public class NESWTouchListener implements View.OnTouchListener, BusModule {
 	private void sendHScroll(Location location) {
 		if (GameState.MENU.equals(GameEngine.state())) {
 			final int hDistance = location.y - lastY;
-			if (Math.abs(hDistance) > DRAG_THRESHOLD) {
+			if (Math.abs(hDistance) > SELECT_THRESHOLD) {
 				dragging = true;
 				bus.send(GameEngine.TOUCHSCREEN_NAME, MSG_HSCROLL, String.valueOf(hDistance));
 				lastY = location.y;
@@ -73,17 +74,17 @@ public class NESWTouchListener implements View.OnTouchListener, BusModule {
 
 	public Direction discernDirection(int dx, int dy) {
 		if (Math.abs(dx) > Math.abs(dy)) {
-			if (dx < -threshold) {
+			if (dx < -DRAG_THRESHOLD) {
 				return Direction.WEST;
 			} 
-			if (dx > threshold) {
+			if (dx > DRAG_THRESHOLD) {
 				return Direction.EAST;
 			}
 		} else {
-			if (dy < -threshold) {
+			if (dy < -DRAG_THRESHOLD) {
 				return Direction.NORTH;
 			} 
-			if (dy > threshold) {
+			if (dy > DRAG_THRESHOLD) {
 				return Direction.SOUTH;
 			}
 		}

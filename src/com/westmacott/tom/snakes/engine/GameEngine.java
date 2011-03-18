@@ -22,6 +22,8 @@ import com.westmacott.tom.snakes.messagebus.MessageListener;
 
 public class GameEngine {
 	
+	public static final boolean DEBUG = true;
+	
 	public static final String SNAKE_NAME = "Snake";
 	public static final String APPLE_NAME = "Apple";
 	public static final String WALL_NAME = "Wall";
@@ -31,7 +33,7 @@ public class GameEngine {
 	public static final String TOASTER_NAME = "MessageToaster";
 	public static final String LEVELS_NAME = "GameLevels";
 	
-	public static final int APPLES_PER_LEVEL = 10;
+	public static final int APPLES_PER_LEVEL = DEBUG ? 1 : 10;
 	
 
 	private Paint messagePaint = new Paint();
@@ -81,7 +83,6 @@ public class GameEngine {
 	private final Level[] levels = Level.all;
 	private final Properties properties;
 	public static final String MSG_SHOW_TOAST = "ShowToast";
-	public static final boolean DEBUG = false;
 	private int textSize = 10;
 	
 	public static double spareTime;
@@ -208,7 +209,7 @@ public class GameEngine {
 	private static void collectGarbageAndWait(int millis) {
 		System.gc();
 		try {
-			Thread.sleep(200);
+			Thread.sleep(500);
 		} catch (InterruptedException e) {
 		}
 	}
@@ -289,7 +290,7 @@ public class GameEngine {
 		grid.showScore(scoreKeeper.getScore());
 		grid.draw(c);
 		if (DEBUG) {
-			c.drawText(spareTime + "ms / " + delayTime + "ms", 10, 30, Colour.RED.paint);
+			//c.drawText(spareTime + "ms / " + delayTime + "ms", 10, 30, Colour.RED.paint);
 		}
 	}
 

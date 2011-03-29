@@ -1,14 +1,10 @@
 package com.westmacott.tom.snakes.engine;
 
-import android.content.Context;
 import android.graphics.Canvas;
-import android.os.Handler;
 import android.view.SurfaceHolder;
 
-import com.westmacott.tom.snakes.engine.GameEngine.GameState;
 import com.westmacott.tom.snakes.messagebus.BusModule;
 import com.westmacott.tom.snakes.messagebus.MessageBus;
-import com.westmacott.tom.snakes.messagebus.MessageListener;
 
 /*
  * The paint thread concept here, and the way it runs the animation loop at a steady framerate, come from
@@ -16,62 +12,33 @@ import com.westmacott.tom.snakes.messagebus.MessageListener;
  */
 public class PaintThread extends Thread implements BusModule {
 	
-
-	public static final String MSG_ACCELERATE = "Accelerate";
-	
-	public static final String MSG_INIT = "Initialise";
-	
-	private static final int LEVEL_START_SPEED_DELAY = 400;
-	
 	private SurfaceHolder mSurfaceHolder;
 	
-	private GameEngine gEngine;
+	private GameEngine gameEngine;
 
 	//for consistent rendering
 	private long sleepTime;
 	
-	//amount of time to sleep for (in milliseconds)
-	private long delay = LEVEL_START_SPEED_DELAY;
-
 	//state of game (Running or Paused).
-	int state = 1;
 	public final static int RUNNING = 1;
 	public final static int PAUSED = 2;
+	int state = RUNNING;
 
-	public PaintThread(SurfaceHolder surfaceHolder, Context context, Handler handler, GameEngine gEngineS) {
+	public PaintThread(SurfaceHolder surfaceHolder, GameEngine gEngineS) {
 
 		//data about the screen
 		mSurfaceHolder = surfaceHolder;
 
-		gEngine=gEngineS;
+		gameEngine = gEngineS;
 		
-		gEngineS.joinBus(this);
+		gameEngine.joinBus(this);
+		
+		setName("Game Paint Thread");
 	}
 
 	@Override
 	public void join(MessageBus bus) {
-		bus.subscribe(GameEngine.PAINTER_NAME, MSG_ACCELERATE, new MessageListener() {
-			@Override
-			public void recieve(String... data) {
-				delay *= 0.93;
-			}
-
-			@Override
-			public String id() {
-				return "PainterAccelerate";
-			}
-		});
-		bus.subscribe(GameEngine.PAINTER_NAME, MSG_INIT, new MessageListener() {
-			@Override
-			public void recieve(String... data) {
-				delay = LEVEL_START_SPEED_DELAY;
-			}
-
-			@Override
-			public String id() {
-				return "PainterInit";
-			}
-		});
+		
 	}
 
 
@@ -86,7 +53,7 @@ public class PaintThread extends Thread implements BusModule {
 			//time before update
 			long beforeTime = System.nanoTime();
 			//This is where we update the game engine
-			gEngine.update();
+			gameEngine.update();
 			//DRAW
 			Canvas c = null;
 			try {
@@ -94,7 +61,7 @@ public class PaintThread extends Thread implements BusModule {
 				c = mSurfaceHolder.lockCanvas();
 				synchronized (mSurfaceHolder) {
 					c.drawARGB(255, 0, 0, 0);
-					gEngine.draw(c);
+					gameEngine.draw(c);
 				}
 			} finally {
 				// do this in a finally so that if an exception is thrown
@@ -113,13 +80,11 @@ public class PaintThread extends Thread implements BusModule {
 			//Sleep time. Time required to sleep to keep game consistent
 			//This starts with the specified delay time (in milliseconds) then subtracts from that the
 			//actual time it took to update and render the game. This allows our game to render smoothly.
-			this.sleepTime = delay - ((System.nanoTime()-beforeTime)/1000000L);
+			this.sleepTime = gameEngine.delay() - ((System.nanoTime()-beforeTime)/1000000L);
 
-			GameEngine.spareTime = this.sleepTime; 
-			GameEngine.delayTime = delay;
 			try {
 				//actual sleep code
-				if (sleepTime > 0 && !GameState.MENU.equals(GameEngine.state())){
+				if (sleepTime > 0){
 					Thread.sleep(sleepTime);
 				} 
 				

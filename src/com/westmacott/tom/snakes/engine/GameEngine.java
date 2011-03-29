@@ -2,25 +2,30 @@ package com.westmacott.tom.snakes.engine;
 
 
 import static com.westmacott.tom.snakes.NESWTouchListener.MSG_SWIPE;
+import static com.westmacott.tom.snakes.engine.GameEngine.GameState.OVER;
+import static com.westmacott.tom.snakes.engine.GameEngine.GameState.READY;
+import static com.westmacott.tom.snakes.engine.GameEngine.GameState.RUNNING;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Paint.Align;
 import android.graphics.Rect;
+import android.util.Log;
 
 import com.westmacott.tom.snakes.Colour;
 import com.westmacott.tom.snakes.Direction;
-import com.westmacott.tom.snakes.Grid;
-import com.westmacott.tom.snakes.MenuButtonListener;
-import com.westmacott.tom.snakes.Snakes.Properties;
+import com.westmacott.tom.snakes.Location;
+import com.westmacott.tom.snakes.Properties;
 import com.westmacott.tom.snakes.entities.Apple;
+import com.westmacott.tom.snakes.entities.Grid;
 import com.westmacott.tom.snakes.entities.Snake;
 import com.westmacott.tom.snakes.entities.Wall;
+import com.westmacott.tom.snakes.menu.GameMenu;
 import com.westmacott.tom.snakes.messagebus.BusModule;
-import com.westmacott.tom.snakes.messagebus.GameBus;
+import com.westmacott.tom.snakes.messagebus.MessageBus;
 import com.westmacott.tom.snakes.messagebus.MessageListener;
 
 
-public class GameEngine {
+public class GameEngine implements BusModule {
 	
 	public static final boolean DEBUG = false;
 	
@@ -33,22 +38,38 @@ public class GameEngine {
 	public static final String TOASTER_NAME = "MessageToaster";
 	public static final String LEVELS_NAME = "GameLevels";
 	
-	public static final int APPLES_PER_LEVEL = DEBUG ? 1 : 10;
+	public static final String MSG_SHOW_TOAST = "ShowToast";
+	public static final String MSG_ACCELERATE = "Accelerate";
+	public static final String MSG_INIT = "Initialise";
 	
+	private static final int LEVEL_START_SPEED_DELAY = 400;
 
-	private Paint messagePaint = new Paint();
-	private Paint backgroundPaint = new Paint();
-	
-	private Snake snake;
+	//amount of time to sleep for (in milliseconds)
+	private long delay = LEVEL_START_SPEED_DELAY;
+
 	
 	public static enum GameState {
-		MENU,
 		READY,
 		RUNNING,
 		OVER
 	}
+
+	private static GameState state = GameState.READY;
+
+	private static boolean levelInProgress = false;
 	
-	private static GameState state = GameState.MENU;
+	public static boolean isLevelInProgress() {
+		return levelInProgress;
+	}
+
+	public static GameState state() {
+		return state;
+	}
+
+	private final Paint messagePaint = new Paint();
+	private final Paint backgroundPaint = new Paint();
+	
+	private Snake snake;
 	
 	public int screenHeight = 320;
 	public int screenWidth = 240;
@@ -69,42 +90,32 @@ public class GameEngine {
 	}
 	
 	private UserMessage userMessage;
-	private int numApples = 3;
+	private final int numApples = 3;
 	
-	private GameBus gameBus = new GameBus();
+	private MessageBus gameBus;
 	
 	private int currentLevel = 0;
-	private boolean levelInProgress = false;
 	
-	private GameMenu menu;
-
-	private final ScoreKeeper scoreKeeper = new ScoreKeeper(APPLES_PER_LEVEL);
+	private ScoreKeeper scoreKeeper;
 	
 	private final Level[] levels = Level.all;
-	private final Properties properties;
-	public static final String MSG_SHOW_TOAST = "ShowToast";
+	private Properties properties;
 	private int textSize = 10;
 	
-	public static double spareTime;
-	public static long delayTime;
-	private Rect announceRect = new Rect(0,0,0,0);
+	private final Rect announceRect = new Rect(0,0,0,0);
 	
-	public GameEngine(Properties properties) {
+	public static final GameEngine INSTANCE = new GameEngine();
+	
+	private GameEngine() {
+	}
+	
+	public void init(int width, int height, Properties properties) {
 		this.properties = properties;
-	}
-	
-	public static GameState state() {
-		return state;
-	}
-
-	public void init(int width, int height) {
-		state = GameState.MENU; // resume to Menu
 		
 		screenWidth = width;
 		screenHeight = height;
 		textSize = (int)(height * 0.04);
 		Colour.updateTextSize(textSize);
-		this.menu = new GameMenu(levels, gameBus, properties, textSize, levelInProgress);
 		
 		messagePaint.setARGB(255, 150, 150, 0);
 		messagePaint.setTextSize(textSize);
@@ -112,16 +123,23 @@ public class GameEngine {
 		
 		backgroundPaint.setARGB(210, 90, 0, 255);
 		
-		joinBus();
-		
+		scoreKeeper = new ScoreKeeper(screenWidth, screenHeight);
+		 
+		reset();
 	}
 	
-	private void joinBus() {
+	@Override
+	public void join(MessageBus bus) {
+		this.gameBus = bus;
+		subscribeToBus();
+	}
+
+	private void subscribeToBus() {
 		gameBus.subscribe(TOUCHSCREEN_NAME, MSG_SWIPE, new MessageListener() {
 	
 			@Override
 			public void recieve(String...data) {
-				nextGameState(data);
+				processSwipe(data[0]);
 			}
 	
 			@Override
@@ -133,7 +151,7 @@ public class GameEngine {
 	
 			@Override
 			public void recieve(String...data) {
-				appleEaten();
+				appleEaten(data[0]);
 			}
 	
 			@Override
@@ -141,23 +159,14 @@ public class GameEngine {
 				return "GameEngineAppleEaten";
 			}
 		});
-		gameBus.subscribe(MENU_NAME, MenuButtonListener.MSG_OPEN_MENU, new MessageListener() {
-			
-			@Override
-			public void recieve(String...data) {
-				state = GameState.MENU;
-				menu = new GameMenu(levels, gameBus, properties, textSize, levelInProgress);  //TODO: rethink this one - should menu really activate/deactivate like this?
-			}
-			
-			@Override
-			public String id() {
-				return "GameEngineOpenMenu";
-			}
-		});
+		
+		Log.i("Game Engine", "Subscribing to " + MENU_NAME + "," + GameMenu.MSG_START_LEVEL + " on bus " + gameBus);
+		
 		gameBus.subscribe(MENU_NAME, GameMenu.MSG_START_LEVEL, new MessageListener() {
 
 			@Override
 			public void recieve(String... data) {
+				Log.i("Game Engine", "Starting Level " + data[0]);
 				startLevel(data[0]);
 			}
 
@@ -166,42 +175,55 @@ public class GameEngine {
 				return "GameEngineStartLevel";
 			}
 		});
+		
+		gameBus.subscribe(PAINTER_NAME, MSG_ACCELERATE, new MessageListener() {
+			@Override
+			public void recieve(String... data) {
+				delay *= 0.93;
+			}
+
+			@Override
+			public String id() {
+				return "GameEngineAccelerate";
+			}
+		});
 	}
 
-	public void nextGameState(String... data) {
+	public void processSwipe(String directionString) {
+		final Direction direction = Direction.valueOf(directionString);
 		switch (state) {
 		case READY:
-			if (Direction.NORTH.equals(Direction.valueOf(data[0]))) {
+			if (Direction.NORTH.equals(direction)) {
+				collectGarbageAndWait(100);
 				state = GameState.RUNNING;
-				userMessage = UserMessage.of("", "");
 				levelInProgress = true;
-				collectGarbageAndWait(200);
 			}
 			break;
 		case OVER:
-			if (Direction.SOUTH.equals(Direction.valueOf(data[0]))) {
+			if (Direction.SOUTH.equals(direction)) {
+				scoreKeeper.resetScore(); 
 				startCurrentLevel();
 			}
 			break;
 		case RUNNING:
+			snake.turn(direction);
+			break;
 		}
 	}
 
-	public void appleEaten() {
-		boolean levelCompleted = scoreKeeper.incrementScore();
+	public void appleEaten(String where) {
+		boolean levelCompleted = scoreKeeper.appleEaten(Location.fromString(where));
 		
 		if (levelCompleted) {
-			recordCompleted(levels[currentLevel].id);
+			state = GameState.OVER;
+			levelInProgress = false;
+			recordCompleted(levels[currentLevel].id, scoreKeeper.getScore());
 			currentLevel++;
 			if (currentLevel < levels.length) {
 				userMessage = UserMessage.of("Level Completed :)", "Swipe down to continue");
-				state = GameState.OVER;
-				levelInProgress = false;
 			} else {
-				userMessage = UserMessage.of("Game Completed :D", "Well Done");
-				state = GameState.OVER;
 				currentLevel = 0;
-				levelInProgress = false;
+				userMessage = UserMessage.of("Game Completed :D", "Well Done");
 			}
 		}
 	}
@@ -209,18 +231,19 @@ public class GameEngine {
 	private static void collectGarbageAndWait(int millis) {
 		System.gc();
 		try {
-			Thread.sleep(500);
+			Thread.sleep(millis);
 		} catch (InterruptedException e) {
 		}
 	}
 
-	private void recordCompleted(int levelId) {
-		this.properties.registerLevelCompleted(levelId);
+	private void recordCompleted(int levelId, int score) {
+		this.properties.registerLevelCompleted(levelId, score);
 	}
 
 	public void reset() {
-		
-		this.scoreKeeper.resetScore();
+		if (this.scoreKeeper != null) {
+			this.scoreKeeper.reset();
+		}
 		
 		final Level level = levels[currentLevel];
 		this.snake = new Snake(level.startLocation, 5, Direction.SOUTH, SNAKE_NAME);
@@ -228,8 +251,6 @@ public class GameEngine {
 		
 		this.snake.join(gameBus);
 		this.grid.join(gameBus);
-		joinBus();
-		
 		
 		new Wall(WALL_NAME, level.data).takeUpPositionOn(grid);
 		
@@ -238,59 +259,34 @@ public class GameEngine {
 		}
 		snake.takeUpPositionOn(grid);
 		
-		gameBus.send(PAINTER_NAME, PaintThread.MSG_INIT);
+		delay = LEVEL_START_SPEED_DELAY;
 	}
 	
 	public void update() {
-		switch (state) {
-			case READY:
-				break;
-			case RUNNING:
-				boolean died = snake.update(grid);
-				if (died) {
-					state = GameState.OVER;
-					levelInProgress = false;
-					userMessage = UserMessage.of("Game Over", "Swipe down to continue");
-				}
-				break;
-			case OVER:
-				break;
-			default:
+		if (RUNNING.equals(state)) {
+			boolean died = snake.update(grid);
+			if (died) {
+				state = GameState.OVER;
+				levelInProgress = false;
+				userMessage = UserMessage.of("Game Over", "Swipe down to continue");
+			}
+			scoreKeeper.step();
 		}
 	}
 	
 	public void joinBus(BusModule module) {
 		module.join(gameBus);
 	}
-
-	public static int getRandomBetween(int min, int max) {
-		return min + (int)(Math.random() * (max - min));
+	
+	public long delay() {
+		return delay;
 	}
 
 	public void draw(Canvas c) {
-		switch (state) {
-		case MENU:
-			this.menu.draw(c);
-			break;
-		case READY:
-			drawGame(c);
-			announcement(c);
-			break;
-		case RUNNING:
-			drawGame(c);
-			break;
-		case OVER:
-			drawGame(c);
-			announcement(c);
-			break;
-		}
-	}
-
-	public void drawGame(Canvas c) {
-		grid.showScore(scoreKeeper.getScore());
 		grid.draw(c);
-		if (DEBUG) {
-			//c.drawText(spareTime + "ms / " + delayTime + "ms", 10, 30, Colour.RED.paint);
+		scoreKeeper.draw(c);
+		if (READY.equals(state) || OVER.equals(state)) {
+			announcement(c);
 		}
 	}
 

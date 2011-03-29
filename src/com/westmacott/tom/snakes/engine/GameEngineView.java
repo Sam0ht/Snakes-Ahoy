@@ -1,42 +1,60 @@
 package com.westmacott.tom.snakes.engine;
 
-import android.os.Handler;
-import android.os.Message;
+
+import android.content.Context;
+import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.widget.Toast;
 
+import com.westmacott.tom.snakes.NESWTouchListener;
+import com.westmacott.tom.snakes.Properties;
 import com.westmacott.tom.snakes.Snakes;
-import com.westmacott.tom.snakes.messagebus.BusModule;
 import com.westmacott.tom.snakes.messagebus.MessageBus;
-import com.westmacott.tom.snakes.messagebus.MessageListener;
 
 public class GameEngineView extends SurfaceView implements SurfaceHolder.Callback
 {
-	private GameEngine gEngine;
-
 	private Snakes activity;
 
 	//our Thread class which houses the game loop
 	private PaintThread thread;
 
+	private final MessageBus bus;
+
 	//class constructors
-	public GameEngineView(Snakes contextS, GameEngine engine){
-		super(contextS, null);
-		activity=contextS;
-		gEngine = engine;
+	public GameEngineView(Snakes context, MessageBus messageBus){
+		super(context, null);
+		activity = context;
+		this.bus = messageBus;
+		
+		GameEngine.INSTANCE.join(bus);
+		
 		initView();
 	}
-	
+
 	private void initView(){
-		//initialize our screen holder
 		SurfaceHolder holder = getHolder();
 		holder.addCallback( this);
 		setFocusable(true);
 	}
 	
-	//these methods are overridden from the SurfaceView super class. They are automatically called 
-	//    when a SurfaceView is created, resumed or suspended.
+	@Override 
+	public void surfaceCreated(SurfaceHolder arg0) {
+		Log.i("Game Engine View", "Surface Created");
+		final Properties properties = new Properties(activity.getPreferences(Context.MODE_PRIVATE));
+		
+//		new RefreshHandler().join(bus);
+		
+		setOnTouchListener(NESWTouchListener.INSTANCE);
+		NESWTouchListener.INSTANCE.join(bus);
+		
+		GameEngine gameEngine = GameEngine.INSTANCE;
+		thread = new PaintThread(getHolder(), gameEngine);
+		if (!GameEngine.isLevelInProgress()) {
+			gameEngine.init(getWidth(), getHeight(), properties);
+		}
+		thread.start();
+	}
+
 	@Override 
 	public void surfaceChanged(SurfaceHolder arg0, int arg1, int arg2, int arg3) {}
 
@@ -53,39 +71,9 @@ public class GameEngineView extends SurfaceView implements SurfaceHolder.Callbac
 			} catch (InterruptedException e) {
 			}
 		}
-
 	}
 
-	@Override 
-	public void surfaceCreated(SurfaceHolder arg0) {
-		thread = new PaintThread(getHolder(), activity, new Handler(), gEngine);
-		gEngine.init(getWidth(), getHeight());
-		gEngine.joinBus(new RefreshHandler());
-		thread.start();
-	}
 	
-    class RefreshHandler extends Handler implements BusModule {
-
-    	@Override
-    	public void handleMessage(Message msg) {
-    		String toast = (String) msg.obj;
-    		Toast.makeText(activity, toast, Toast.LENGTH_SHORT).show();
-    	}
-
-    	@Override
-    	public void join(MessageBus bus) {
-    		bus.subscribe(GameEngine.TOASTER_NAME, GameEngine.MSG_SHOW_TOAST, new MessageListener() {
-    			@Override
-    			public void recieve(String... data) {
-    				sendMessage(Message.obtain(RefreshHandler.this, 0, data[0]));
-    			}
-    			@Override
-    			public String id() {
-    				return "ActivityShowToast";
-    			}
-    		});
-    	}
-    };
 	
 }
 

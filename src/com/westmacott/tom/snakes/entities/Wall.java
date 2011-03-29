@@ -2,11 +2,10 @@ package com.westmacott.tom.snakes.entities;
 
 import com.westmacott.tom.snakes.Colour;
 import com.westmacott.tom.snakes.Drawable;
-import com.westmacott.tom.snakes.Grid;
 
 
 public class Wall {
-	public static final Colour COLOUR = Colour.LIGHT_BROWN;
+	public static final Colour COLOUR = Colour.DARK_RED;
 	
 	private final String wallName;
 	private final String layout;

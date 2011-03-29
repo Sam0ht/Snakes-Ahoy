@@ -2,7 +2,6 @@ package com.westmacott.tom.snakes.entities;
 
 import com.westmacott.tom.snakes.Colour;
 import com.westmacott.tom.snakes.Drawable;
-import com.westmacott.tom.snakes.Grid;
 import com.westmacott.tom.snakes.Location;
 import com.westmacott.tom.snakes.engine.GameEngine;
 

@@ -8,9 +8,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import com.westmacott.tom.snakes.Colour;
 import com.westmacott.tom.snakes.Direction;
 import com.westmacott.tom.snakes.Drawable;
-import com.westmacott.tom.snakes.Grid;
 import com.westmacott.tom.snakes.Location;
-import com.westmacott.tom.snakes.NESWTouchListener;
 import com.westmacott.tom.snakes.engine.GameEngine;
 import com.westmacott.tom.snakes.engine.GameEngine.GameState;
 import com.westmacott.tom.snakes.messagebus.BusModule;
@@ -81,50 +79,6 @@ public class Snake implements BusModule {
 
 	}
 
-	private class CompassListener implements MessageListener {
-		@Override
-		public void recieve(String... data) {
-			Direction newDirection = Direction.valueOf(data[0]);
-			turn(newDirection);
-		}
-
-		@Override
-		public String id() {
-			return "CompassListener";
-		}
-	}
-	
-	@SuppressWarnings("unused")
-	private class TurnListener implements MessageListener {
-		@Override
-		public void recieve(String... data) {
-			
-			Direction newDirection = Direction.valueOf(data[0]);
-			switch (newDirection) {
-			case WEST:
-				turnLeft();
-				break;
-			case EAST:
-				turnRight();
-				break;
-			default:
-			}
-		}
-
-		@Override
-		public String id() {
-			return "TurnListener";
-		}
-	}
-
-	public void turnLeft() {
-		turn(this.direction.nextLeft());
-	}
-	
-	public void turnRight() {
-		turn(this.direction.nextRight());
-	}
-	
 	public void turn(Direction direction) {
 		if (GameState.RUNNING.equals(GameEngine.state())) {
 			pendingTurns.offer(direction);
@@ -136,7 +90,7 @@ public class Snake implements BusModule {
 		bus.subscribe(this.snakeName, MSG_LENGTHEN, new MessageListener() {
 			@Override
 			public void recieve(String... data) {
-				lengthen();
+				intendedLength += 5;
 			}
 
 			@Override
@@ -144,10 +98,5 @@ public class Snake implements BusModule {
 				return "SnakeLengthen";
 			}
 		});
-		bus.subscribe(GameEngine.TOUCHSCREEN_NAME, NESWTouchListener.MSG_SWIPE, new CompassListener());
-	}
-	
-	public void lengthen() {
-		intendedLength += 5;
 	}
 }

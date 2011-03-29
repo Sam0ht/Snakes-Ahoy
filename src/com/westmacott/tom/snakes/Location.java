@@ -12,6 +12,9 @@ public class Location {
 	public String toString() {
 		return x + "/" + y;
 	}
+	public static Location fromString(String where) {
+		return new Location(where);
+	}
 	public Location(String fromString) {
 		String[] coordinates = fromString.split("/");
 		if (coordinates.length != 2) {

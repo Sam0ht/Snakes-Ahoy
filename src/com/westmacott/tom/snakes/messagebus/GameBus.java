@@ -4,8 +4,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.westmacott.tom.snakes.MapKey;
-import com.westmacott.tom.snakes.MultiMap;
 
 public class GameBus implements MessageBus {
 
